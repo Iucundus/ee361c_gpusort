@@ -1,0 +1,8 @@
+*.o
+generate_array
+validate
+mergesort
+quicksort
+radix_sort
+brick_sort
+bitonic_sort
