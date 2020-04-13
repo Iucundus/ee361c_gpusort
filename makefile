@@ -1,8 +1,8 @@
 file_helper.o: file_helper.c
-	gcc -c file_helper.c
+	gcc -c file_helper.c -o file_helper.o
 
-file_helper.obj: file_helper_cuda.cu
-	nvcc -c file_helper_cuda.cu
+file_helper_cuda.o: file_helper_cuda.cu
+	nvcc -c file_helper_cuda.cu -o file_helper_cuda.o
 	
 validate: validate.c file_helper.h file_helper.o
 	gcc -o validate validate.c file_helper.o
@@ -10,20 +10,20 @@ validate: validate.c file_helper.h file_helper.o
 generate_array: generate_array.c file_helper.h file_helper.o
 	gcc -o generate_array generate_array.c file_helper.o
 	
-mergesort: mergesort.cu file_helper.h file_helper_cuda.cu
-	nvcc -o mergesort mergesort.cu file_helper_cuda.cu
+mergesort: mergesort.cu file_helper.h file_helper_cuda.o
+	nvcc -o mergesort mergesort.cu file_helper_cuda.o
 	
-quicksort: quicksort.cu file_helper.h file_helper_cuda.cu
-	nvcc -o quicksort quicksort.cu file_helper_cuda.cu
+quicksort: quicksort.cu file_helper.h file_helper_cuda.o
+	nvcc -o quicksort quicksort.cu file_helper_cuda.o
 	
-radix_sort: radix_sort.cu file_helper.h file_helper_cuda.cu
-	nvcc -o radix_sort radix_sort.cu file_helper_cuda.cu
+radix_sort: radix_sort.cu file_helper.h file_helper_cuda.o
+	nvcc -o radix_sort radix_sort.cu file_helper_cuda.o
 	
-brick_sort: brick_sort.cu file_helper.h file_helper_cuda.cu
-	nvcc -o brick_sort brick_sort.cu file_helper_cuda.cu
+brick_sort: brick_sort.cu file_helper.h file_helper_cuda.o
+	nvcc -o brick_sort brick_sort.cu file_helper_cuda.o
 	
-bitonic_sort: bitonic_sort.cu file_helper.h file_helper_cuda.cu
-	nvcc -o bitonic_sort bitonic_sort.cu file_helper_cuda.cu
+bitonic_sort: bitonic_sort.cu file_helper.h file_helper_cuda.o
+	nvcc -o bitonic_sort bitonic_sort.cu file_helper_cuda.o
 	
 all: mergesort quicksort radix_sort brick_sort bitonic_sort
 
