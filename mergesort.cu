@@ -2,6 +2,11 @@
 #include <stdlib.h>
 #include "file_helper.h"
 
+__global__ void mergesort(int* src, int* dest, int sliceWidth, int size);
+__device__ void merge(int* src, int* dest, int start, int mid, int end);
+//int min(int x, int y);
+void swap(int * &a, int * &b);
+
 int main(int argc, char* argv[]) {
 	//Set default file name
 	const char* inputFile = "inp.txt";
@@ -21,6 +26,26 @@ int main(int argc, char* argv[]) {
 	}
 	
 	//YOUR CODE HERE
+
+	int* B = (int *)malloc(size*sizeof(int));
+
+	int threadsPerBlock = 512;
+	int blocksPerGrid =((size) + threadsPerBlock - 1) / threadsPerBlock;
+
+	int *d_A;
+	int *d_B;
+	cudaMalloc((void **) &d_A, size*sizeof(int));
+	cudaMalloc((void **) &d_B, size*sizeof(int));
+
+	cudaMemcpy(d_A,A, size*sizeof(int), cudaMemcpyHostToDevice);
+
+	for(int sliceWidth = 2; sliceWidth < (size*2); sliceWidth = sliceWidth*2){
+		mergesort<<<blocksPerGrid,threadsPerBlock>>>(d_A,d_B,sliceWidth, size);
+		swap(d_A,d_B);
+	}
+
+	cudaMemcpy(A, d_A, size*sizeof(int), cudaMemcpyDeviceToHost);
+
 	
 	//Output array to file
 	if(saveArray(outputFile, A, size) < 0) {
@@ -28,6 +53,55 @@ int main(int argc, char* argv[]) {
 	}
 	
 	free(A);
+	free(B);
+	cudaFree(d_A);
+	cudaFree(d_B);
 	
 	return 0;
+}
+
+__global__ void mergesort(int* src, int* dest, int sliceWidth, int size){
+	int idx = blockDim.x * blockIdx.x + threadIdx.x;
+
+	int start = idx*sliceWidth;
+	int mid = min(start + (sliceWidth/2), size);
+	int end = min(start + sliceWidth, size);
+
+	if(start < size){
+		//printf("merging %u to %u\n", start, end-1); //debug
+		merge(src,dest,start,mid,end);
+	}
+
+	
+
+}
+
+__device__ void merge(int* src, int* dest, int start, int mid, int end){
+	int frontIDX = start;
+	int backIDX = mid;
+
+	for(int mergeIDX = start; mergeIDX < end; mergeIDX++){
+		if(((frontIDX < mid) && (src[frontIDX] < src[backIDX])) || ((frontIDX < mid) && (backIDX >= end))){ //frontIDX element is lower or back array has already been traversed
+			dest[mergeIDX] = src[frontIDX];
+			frontIDX++;
+		}
+		else{
+			dest[mergeIDX] = src[backIDX];
+			backIDX++;
+		}
+	}
+
+}
+
+// int min(int x, int y){
+// 	if(x<y)
+// 		return x;
+// 	else
+// 		return y;
+// }
+
+void swap(int * &a, int * &b){
+	int *temp = a;
+	a = b;
+	b = temp;
 }
