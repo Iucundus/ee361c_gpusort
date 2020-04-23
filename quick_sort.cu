@@ -1,3 +1,10 @@
+#include "file_helper.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+
+__global__ void split(int N, int* input, int* left, int* right);
+
 
 int main(int argc, char* argv[]) {
 	//Set default file name
@@ -18,6 +25,15 @@ int main(int argc, char* argv[]) {
 	}
 
 	//YOUR CODE HERE
+	int* input;
+	int* left;
+	int* right;
+
+	cudaMallocManaged(&left, size*sizeof(int));
+	cudaMallocManaged(&right, size*sizeof(int));
+	cudaMallocManaged(&input, size*sizeof(int));
+	split<<<1,1>>>(size, input, left, right); 
+	
 
 
 	//Output array to file
@@ -25,11 +41,7 @@ int main(int argc, char* argv[]) {
 		printf("Error writing sorted array to %s\n", outputFile);
 	}
 
-	free(A);
-	free(B);
-	cudaFree(d_A);
-	cudaFree(d_B);
-
+	
 	return 0;
 }
 
