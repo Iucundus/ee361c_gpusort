@@ -5,8 +5,11 @@
 __global__ void split(int N, int* input, int* left, int* right);
 
 struct node{
-
-}
+	int* array;
+	int numElements;
+	node* left;
+	node* right;
+};
 
 int main(int argc, char* argv[]) {
 	//Set default file name
@@ -34,7 +37,7 @@ int main(int argc, char* argv[]) {
 	cudaMallocManaged(&left, size*sizeof(int));
 	cudaMallocManaged(&right, size*sizeof(int));
 	cudaMallocManaged(&input, size*sizeof(int));
-	split<<<1,1>>>(size, input, left, right);
+
 
 
 	//Output array to file
@@ -51,12 +54,12 @@ int main(int argc, char* argv[]) {
 
 
 __global__
-void split(int N, int* input, int* left, int* right){
+void split(int N, int* input, int* left, int* right, int* leftcount int* rightcount){
   int index = threadIdx.x;
   int stride = blockDim.x;
 
-  __shared__ int leftcount;
-  __shared__ int rightcount;
+  __shared__ int local_left_count;
+  __shared__ int local_right_count;
 
   int splitter = input[0];
 
@@ -70,6 +73,42 @@ void split(int N, int* input, int* left, int* right){
   __syncthreads();
   if(index == 0){
     left[atomicAdd(&leftcount,1)] = input[0];
+		*leftcount = local_left_count;
+		*rightcount = local_right_count;
   }
+
+}
+
+
+int* output;
+int output_count;
+int* quick_sort(int N, int* input){
+	node root;
+	root.array = input;
+	root.numElements = N;
+	output = malloc(sizeof(int)*N);
+	output_count = 0;
+	recursive_helper(&root);
+}
+
+void recursive_helper(node* current_node){
+
+	if(current_node.numElements < 2){
+		output[output_count] = current_node.array[0];
+		output_count++;
+		return;
+	}
+	current_node.left = malloc(sizeof(node));
+	current_node.right = malloc(sizeof(node));
+
+	cudaMallocManaged(&current_node.left.array, sizeof(int)*current_node.numElements);
+	cudaMallocManaged(&current_node.right.array, sizeof(int)*current_node.numElements);
+	//TODO add break condition
+	
+
+	split<<<1,1>>>(size, current_node.array, current_node.left.array, current_node.right.array, &current_node.left.numElements, &current_node.right.numElements);
+
+	recursive_helper(current_node.left);
+	recursive_helper(current_node.right);
 
 }
