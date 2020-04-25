@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
 		printf("Error writing sorted array to %s\n", outputFile);
 	}
 
-	free(A);
+	cudaFree(A);
 
 	return 0;
 }
@@ -52,15 +52,12 @@ __global__
 void split(int N, int* input, int* left, int* right, int* leftcount, int* rightcount){
   int index = threadIdx.x;
   int stride = blockDim.x;
-printf("hello");
   __shared__ int local_left_count;
   __shared__ int local_right_count;
   local_left_count = 0;
   local_right_count = 0;
   __syncthreads();
-  printf(" \n");
   int splitter = input[0];
-printf("getting ready to split");
   for (int i = index+1; i < N; i+= stride){
     if(input[i] > splitter){
       right[atomicAdd(&local_right_count,1)] = input[i];
@@ -69,15 +66,11 @@ printf("getting ready to split");
     }
   }
   __syncthreads();
-printf("done splitting");
     if(index == 0) left[atomicAdd(&local_left_count,1)] = input[0];
   __syncthreads();
-    //*leftcount = local_left_count;
-		//*rightcount = local_right_count;
-		printf("  %d\n  ",local_left_count);
-		printf("  %d\n  ",local_right_count);
-
-
+    *leftcount = local_left_count;
+		*rightcount = local_right_count;
+	
 }
 
 
@@ -97,30 +90,34 @@ int* quick_sort(int N, int* input){
 	return output;
 }
 
-void recursive_helper(node* the_node){
-	node current_node = *the_node;
-	printf("%d total ",current_node.numElements);
-	printf("%d splitter ",current_node.array[0]);
-	if(current_node.numElements == 1){
-		output[output_count] = current_node.array[0];
+void recursive_helper(node* current_node){
+	//printf("%d total ",current_node->numElements);
+
+	//printf("%d splitter ",current_node->array[0]);
+	if(current_node->numElements == 1){
+		output[output_count] = current_node->array[0];
 		output_count++;
+		cudaFree(current_node->array);
+		cudaFree(current_node);
 		return;
-	}if(current_node.numElements == 0){ return;}
-	cudaMallocManaged(&current_node.left,sizeof(node));
-	cudaMallocManaged(&current_node.right,sizeof(node));
-	node left_node = *current_node.left;
-	node right_node = *current_node.right;
-	cudaMallocManaged(&left_node.array, sizeof(int)*current_node.numElements);
-	cudaMallocManaged(&right_node.array, sizeof(int)*current_node.numElements);
-	printf("%d", left_node.array[0]);
+	}if(current_node->numElements == 0){
+	       cudaFree(current_node->array);
+       	cudaFree(current_node);	       
+		return;
+	}
+	cudaMallocManaged(&current_node->left,sizeof(node));
+	cudaMallocManaged(&current_node->right,sizeof(node));
+	
+	cudaMallocManaged(&current_node->left->array, sizeof(int)*current_node->numElements);
+	cudaMallocManaged(&current_node->right->array, sizeof(int)*current_node->numElements);
+	//printf("%d", current_node->left->array[0]);
 
 
-	split<<<1,1>>>(current_node.numElements, current_node.array, left_node.array, right_node.array, &left_node.numElements, &right_node.numElements);
+	split<<<1,256>>>(current_node->numElements, current_node->array, current_node->left->array, current_node->right->array, &current_node->left->numElements, &current_node->right->numElements);
 	cudaDeviceSynchronize();
-	printf("%d", left_node.array[0]);
-	printf("%d left",left_node.numElements);
-	printf("%d right",right_node.numElements);
-	recursive_helper(current_node.left);
-	recursive_helper(current_node.right);
+	recursive_helper(current_node->left);
+	recursive_helper(current_node->right);
+	cudaFree(current_node->array);
+	cudaFree(current_node);	
 
 }
