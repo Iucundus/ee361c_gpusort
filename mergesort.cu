@@ -4,7 +4,6 @@
 
 __global__ void mergesort(int* src, int* dest, int sliceWidth, int size);
 __device__ void merge(int* src, int* dest, int start, int mid, int end);
-//int min(int x, int y);
 void swap(int * &a, int * &b);
 
 int main(int argc, char* argv[]) {
@@ -24,8 +23,6 @@ int main(int argc, char* argv[]) {
 		printf("Error getting array from %s\n", inputFile);
 		return -1;
 	}
-	
-	//YOUR CODE HERE
 
 	int* B = (int *)malloc(size*sizeof(int));
 
@@ -60,6 +57,11 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
+
+/*
+ * Sets start, midpoint, and end of array for use in merge()
+ */
+
 __global__ void mergesort(int* src, int* dest, int sliceWidth, int size){
 	int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -75,6 +77,10 @@ __global__ void mergesort(int* src, int* dest, int sliceWidth, int size){
 	
 
 }
+
+/*
+ * Merges two sorted halves of array into one sorted array
+ */
 
 __device__ void merge(int* src, int* dest, int start, int mid, int end){
 	int frontIDX = start;
@@ -93,12 +99,9 @@ __device__ void merge(int* src, int* dest, int start, int mid, int end){
 
 }
 
-// int min(int x, int y){
-// 	if(x<y)
-// 		return x;
-// 	else
-// 		return y;
-// }
+/*
+ * Swaps array pointers
+ */
 
 void swap(int * &a, int * &b){
 	int *temp = a;
