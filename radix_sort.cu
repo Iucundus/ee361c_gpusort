@@ -22,6 +22,39 @@ int main(int argc, char* argv[]) {
 
 	//YOUR CODE HERE
 
+
+	int* x;
+  int* buck0;
+  int* buck1;
+  int* out;
+  int* prefix1;
+  int* prefix2;
+
+  cudaMallocManaged(&x, size*sizeof(int));
+  cudaMallocManaged(&out, size*sizeof(int));
+  cudaMallocManaged(&buck0, size*sizeof(int));
+  cudaMallocManaged(&buck1, size*sizeof(int));
+  cudaMallocManaged(&prefix1, size*sizeof(int));
+  cudaMallocManaged(&prefix2, size*sizeof(int));
+
+  cudaMemcpy(x,A,size*sizeof(int), cudaMemcpyHostToDevice);
+
+  radix_sort<<<1,256>>>(size, x, out, buck0, buck1, prefix1, prefix2);
+
+  cudaDeviceSynchronize();
+
+  cudaMemcpy(A,out,size*sizeof(int),cudaMemcpyDeviceToHost);
+
+  cudaFree(x);
+  cudaFree(buck0);
+  cudaFree(buck1);
+  cudaFree(prefix1);
+  cudaFree(prefix2);
+  cudaFree(out);
+
+
+
+
 	//Output array to file
 	if(saveArray(outputFile, A, size) < 0) {
 		printf("Error writing sorted array to %s\n", outputFile);
