@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	//YOUR CODE HERE
-	A = quick_sort(size,A);
+	quick_sort(size,A);
 
 
 	//Output array to file
@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
 		printf("Error writing sorted array to %s\n", outputFile);
 	}
 
-	cudaFree(A);
+	free(A);
 
 	return 0;
 }
@@ -70,13 +70,13 @@ void split(int N, int* input, int* left, int* right, int* leftcount, int* rightc
   __syncthreads();
     *leftcount = local_left_count;
 		*rightcount = local_right_count;
-	
+
 }
 
 
 int* output;
 int output_count;
-int* quick_sort(int N, int* input){
+void quick_sort(int N, int* input){
 
 	node* rootptr;
 	cudaMallocManaged(&rootptr, sizeof(node));
@@ -87,7 +87,8 @@ int* quick_sort(int N, int* input){
 	cudaMallocManaged(&output,sizeof(int)*N);
 	output_count = 0;
 	recursive_helper(&root);
-	return output;
+	cudaMemcpy(output,input,N*sizeof(int), cudaMemcpyDeviceToHost);
+	cudaFree(output);
 }
 
 void recursive_helper(node* current_node){
@@ -102,12 +103,12 @@ void recursive_helper(node* current_node){
 		return;
 	}if(current_node->numElements == 0){
 	       cudaFree(current_node->array);
-       	cudaFree(current_node);	       
+       	cudaFree(current_node);
 		return;
 	}
 	cudaMallocManaged(&current_node->left,sizeof(node));
 	cudaMallocManaged(&current_node->right,sizeof(node));
-	
+
 	cudaMallocManaged(&current_node->left->array, sizeof(int)*current_node->numElements);
 	cudaMallocManaged(&current_node->right->array, sizeof(int)*current_node->numElements);
 	//printf("%d", current_node->left->array[0]);
@@ -118,6 +119,6 @@ void recursive_helper(node* current_node){
 	recursive_helper(current_node->left);
 	recursive_helper(current_node->right);
 	cudaFree(current_node->array);
-	cudaFree(current_node);	
+	cudaFree(current_node);
 
 }
