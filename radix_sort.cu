@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include "file_helper.h"
 
+
+__global__ void radix_sort(int N, int* x, int* out, int* buck0, int* buck1, int* prefix1, int* prefix2);
+
+
 int main(int argc, char* argv[]) {
 	//Set default file name
 	const char* inputFile = "inp.txt";
@@ -21,7 +25,6 @@ int main(int argc, char* argv[]) {
 	}
 
 	//YOUR CODE HERE
-
 
 	int* x;
   int* buck0;
@@ -43,7 +46,7 @@ int main(int argc, char* argv[]) {
 
   cudaDeviceSynchronize();
 
-  cudaMemcpy(A,out,size*sizeof(int),cudaMemcpyDeviceToHost);
+  cudaMemcpy(A,x,size*sizeof(int),cudaMemcpyDeviceToHost);
 
   cudaFree(x);
   cudaFree(buck0);
