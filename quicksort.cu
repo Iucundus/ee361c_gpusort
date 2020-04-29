@@ -64,7 +64,7 @@ void split(int N, int* input, int* left, int* right, int* leftcount, int* rightc
   //*rightcount = 0;
   __syncthreads();
   int splitter = input[0];
-  for (int i = index; i < N; i+= stride){
+  for (int i = index+1; i < N; i+= stride){
     if(input[i] > splitter){
       right[atomicAdd(rightcount,1)] = input[i];
     }else{
@@ -103,7 +103,7 @@ void quick_sort(int N, int* input){
 	cudaMemcpy(input,output,N*sizeof(int), cudaMemcpyDeviceToHost);
 	cudaFree(output);
 }
-cudaStream_t streams [5000];
+cudaStream_t streams [50000];
 void *recursive_helper(void* ptr){
 	
 	node* current_node = (node*) ptr;
@@ -171,15 +171,14 @@ void quick_sort2(int N, int* input){
 	
 	cudaMallocManaged(&rootptr,sizeof(node2));
 	node2 root = *rootptr;
-	cudaMalloc(&root.array, sizeof(int)*N);
+	cudaMallocManaged(&root.array, sizeof(int)*N);
 	cudaMemcpy(root.array,input,sizeof(int)*N,cudaMemcpyHostToDevice);
 	root.numElements = N;
-	cudaMalloc(&output,sizeof(int)*N);
+	cudaMallocManaged(&output,sizeof(int)*N);
 	
 	recursive_helper2(&root);
 	cudaMemcpy(input,output,N*sizeof(int),cudaMemcpyDeviceToHost);
-	cudaFree(&root.array);
-	cudaFree(&root);
+
 	cudaFree(output);
 }
 
@@ -195,33 +194,49 @@ void* recursive_helper2(void* ptr){
 		cudaFree(current_node);
 		return NULL;
 	}
-	
+//	printf("%d\n", current_node->numElements);	
 	node2* left;
 	node2* right;
 
-	cudaMallocManaged(&left, sizeof(node2));
-	cudaMalloc(&left->array, sizeof(int)*current_node->numElements);
-	cudaMallocManaged(&right, sizeof(node2));
-	cudaMalloc(&right->array, sizeof(int)*current_node->numElements);
+	while(cudaMallocManaged(&left, sizeof(node2)));
+	while(cudaMallocManaged(&left->array, sizeof(int)*current_node->numElements));
+	while(cudaMallocManaged(&right, sizeof(node2)));
+	while(cudaMallocManaged(&right->array, sizeof(int)*current_node->numElements));
 
 	int numBlocks = (current_node->numElements + 256 - 1) /256;
 	
 	int streamID = __atomic_fetch_add(&stream_cnt, 1, __ATOMIC_SEQ_CST);
 	cudaStreamCreate(&streams[streamID]);
 	
-	split<<<numBlocks, 256, 0, streams[streamID]>>>(current_node->numElements, current_node->array, left->array, right->array, &left->numElements, &right->numElements);
+	split<<<1, 256, 0, streams[streamID]>>>(current_node->numElements, current_node->array, left->array, right->array, &left->numElements, &right->numElements);
 	cudaStreamSynchronize(streams[streamID]);
+	
+	left->array[left->numElements] = current_node->array[0];
+	left->numElements ++;
+
+	left->before = current_node->before;
+	right->before = current_node->before + left->numElements;
 
 	pthread_t left_thread, right_thread;
 
-	pthread_create(&left_thread, NULL, recursive_helper2, (void*) left);
-	pthread_create(&right_thread, NULL, recursive_helper2, (void*) right);
-
-	pthread_join(left_thread,NULL);
-	pthread_join(right_thread,NULL);
 
 	cudaFree(current_node->array);
 	cudaFree(current_node);
+
+
+	pthread_create(&left_thread, NULL, recursive_helper2, (void*) left);
+	pthread_join(left_thread,NULL);	
+	pthread_create(&right_thread, NULL, recursive_helper2, (void*) right);
+
+	//pthread_join(left_thread,NULL);
+	//pthread_join(right_thread,NULL);
+	
+	//cudaFree(current_node->array);
+	//cudaFree(current_node);
+	
+	pthread_join(left_thread,NULL);
+	pthread_join(right_thread,NULL);
+
 	return NULL;
 
 }
