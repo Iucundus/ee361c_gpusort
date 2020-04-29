@@ -165,7 +165,8 @@ void *recursive_helper(void* ptr){
 	printf("thread exiting");
 	return NULL;
 }
-
+int done = 0;
+int done_count;
 void quick_sort2(int N, int* input){
 	node2* rootptr;
 	
@@ -175,10 +176,11 @@ void quick_sort2(int N, int* input){
 	cudaMemcpy(root.array,input,sizeof(int)*N,cudaMemcpyHostToDevice);
 	root.numElements = N;
 	cudaMallocManaged(&output,sizeof(int)*N);
-	
+	done_count = N;
 	recursive_helper2(&root);
+	while(!done);
 	cudaMemcpy(input,output,N*sizeof(int),cudaMemcpyDeviceToHost);
-
+	
 	cudaFree(output);
 }
 
@@ -188,6 +190,7 @@ void* recursive_helper2(void* ptr){
 		output[current_node->before] = current_node->array[0];
 		cudaFree(current_node->array);
 		cudaFree(current_node);
+		//if(current_node->before == done_count-2) done = 1;
 		return NULL;
 	}if(current_node->numElements == 0){
 		cudaFree(current_node->array);
@@ -225,17 +228,17 @@ void* recursive_helper2(void* ptr){
 
 
 	pthread_create(&left_thread, NULL, recursive_helper2, (void*) left);
-	pthread_join(left_thread,NULL);	
+//	pthread_join(left_thread,NULL);	
 	pthread_create(&right_thread, NULL, recursive_helper2, (void*) right);
 
-	//pthread_join(left_thread,NULL);
-	//pthread_join(right_thread,NULL);
+	pthread_join(left_thread,NULL);
+	pthread_join(right_thread,NULL);
 	
 	//cudaFree(current_node->array);
 	//cudaFree(current_node);
 	
-	pthread_join(left_thread,NULL);
-	pthread_join(right_thread,NULL);
+//	pthread_join(left_thread,NULL);
+//	pthread_join(right_thread,NULL);
 
 	return NULL;
 
