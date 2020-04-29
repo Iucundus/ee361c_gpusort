@@ -11,7 +11,7 @@ struct node{
 	node* right;
 };
 void recursive_helper(node* current_node);
-int* quick_sort(int N, int* input);
+void quick_sort(int N, int* input);
 
 int main(int argc, char* argv[]) {
 	//Set default file name
@@ -87,7 +87,7 @@ void quick_sort(int N, int* input){
 	cudaMallocManaged(&output,sizeof(int)*N);
 	output_count = 0;
 	recursive_helper(&root);
-	cudaMemcpy(output,input,N*sizeof(int), cudaMemcpyDeviceToHost);
+	cudaMemcpy(input,output,N*sizeof(int), cudaMemcpyDeviceToHost);
 	cudaFree(output);
 }
 
