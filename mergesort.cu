@@ -3,7 +3,7 @@
 #include "file_helper.h"
 
 __global__ void mergesort(int* src, int* dest, int sliceWidth, int size);
-__device__ void merge(int* src, int* dest, int start, int mid, int end);S
+__device__ void merge(int* src, int* dest, int start, int mid, int end);
 void swap(int * &a, int * &b);
 
 int main(int argc, char* argv[]) {
