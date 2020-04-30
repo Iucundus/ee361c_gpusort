@@ -4,9 +4,11 @@
 #SBATCH -N 2              # total number of nodes
 #SBATCH -n 4              # total number of cores
 #SBATCH -p gtx     # queue (partition) -- normal, development, etc.
-#SBATCH -t 00:01:30        # run time (hh:mm:ss) - 20 seconds
+#SBATCH -t 00:03:30        # run time (hh:mm:ss) - 20 seconds
 #SBATCH -A EE-382C-EE-361C-Mult
 
 rm quicksort
 make quicksort
-. generic_test.sh quicksort quicksort_timing
+echo "Testing quick sort for array size 10000"
+./quicksort testIn10000.txt output10000.txt
+./validate testIn10000.txt output10000.txt
