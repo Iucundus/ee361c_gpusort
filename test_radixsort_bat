@@ -7,4 +7,6 @@
 #SBATCH -t 00:01:30        # run time (hh:mm:ss) - 20 seconds
 #SBATCH -A EE-382C-EE-361C-Mult
 
-. generic_test.sh quicksort scripttesttime
+rm radix_sort
+make radix_sort
+. generic_test.sh radix_sort radixsort_timing
