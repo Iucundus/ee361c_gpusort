@@ -65,7 +65,7 @@ void split(int N, int* input, int* left, int* right, int* leftcount, int* rightc
   __syncthreads();
   int splitter = input[0];
   for (int i = index+1; i < N; i+= stride){
-    if(input[i] > splitter){
+    if(input[i] >= splitter){
       right[atomicAdd(rightcount,1)] = input[i];
     }else{
       left[atomicAdd(leftcount,1)] = input[i];
@@ -141,7 +141,7 @@ void* recursive_helper2(void* ptr){
 
 
 	pthread_create(&left_thread, NULL, recursive_helper2, (void*) &left);
-//	pthread_join(left_thread,NULL);
+	pthread_join(left_thread,NULL);
 	pthread_create(&right_thread, NULL, recursive_helper2, (void*) &right);
 
 	pthread_join(left_thread,NULL);
