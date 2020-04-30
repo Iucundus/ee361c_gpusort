@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "file_helper.h"
 
-__global__ void mergesort(int* src, int* dest, int sliceWidth, int size);
+__global__ void mergesort(int* src, int* dest, int sliceWidth, int size, int slices);
 __device__ void merge(int* src, int* dest, int start, int mid, int end);
 void swap(int * &a, int * &b);
 
@@ -29,6 +29,10 @@ int main(int argc, char* argv[]) {
 	int threadsPerBlock = 512;
 	int blocksPerGrid =((size) + threadsPerBlock - 1) / threadsPerBlock;
 
+	if(size > 1000){
+		blocksPerGrid = ((1000) + threadsPerBlock - 1) / threadsPerBlock;
+	}
+
 	int *d_A;
 	int *d_B;
 	cudaMalloc((void **) &d_A, size*sizeof(int));
@@ -36,8 +40,11 @@ int main(int argc, char* argv[]) {
 
 	cudaMemcpy(d_A,A, size*sizeof(int), cudaMemcpyHostToDevice);
 
+	printf("threads: %u\n",blocksPerGrid*threadsPerBlock);
+
 	for(int sliceWidth = 2; sliceWidth < (size*2); sliceWidth = sliceWidth*2){
-		mergesort<<<blocksPerGrid,threadsPerBlock>>>(d_A,d_B,sliceWidth, size);
+		int slices = size / ((blocksPerGrid*threadsPerBlock) * sliceWidth) + 1;
+		mergesort<<<blocksPerGrid,threadsPerBlock>>>(d_A,d_B,sliceWidth, size, slices);
 		swap(d_A,d_B);
 	}
 
@@ -60,17 +67,23 @@ int main(int argc, char* argv[]) {
 /*
  * Sets start, midpoint, and end of array for use in merge()
  */
-__global__ void mergesort(int* src, int* dest, int sliceWidth, int size){
+__global__ void mergesort(int* src, int* dest, int sliceWidth, int size, int slices){
 	int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
-	int start = idx*sliceWidth;
-	int mid = min(start + (sliceWidth/2), size);
-	int end = min(start + sliceWidth, size);
+	int start = idx*sliceWidth*slices;
+	int mid;
+	int end;
 
-	if(start < size){
-		//printf("merging %u to %u\n", start, end-1); //debug
-		merge(src,dest,start,mid,end);
-	}
+
+	for (int slice = 0; slice < slices; slice++) { 
+        if (start >= size)
+            break;
+ 
+        mid = min(start + (sliceWidth/2), size);
+        end = min(start + sliceWidth, size);
+        merge(src,dest,start,mid,end);
+        start += sliceWidth;
+    }
 
 	
 
