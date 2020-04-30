@@ -10,9 +10,14 @@ For our project, we implement serveral different parallel sorting algorithms to 
 - `brick_sort`
 - `bitonic_sort`
 
+### Performance
+The following graphs show a comparison of the various sorting algorithms' average runtimes across of range of input array sizes. The thread count of these algorithms was dependent on the size of the array, so we do not have a comparison of the runtimes across different number of threads for a fixed array size.  
+![alt text](timing_graph_1.png "Timing Graph 1")  
+![alt text](timing_graph_2.png "Timing Graph 2")
+
 Compiling
 -----
-Included in this respository is a makefile, which can be used compile each program. To do this, simply run `make` with the algorithm you wish to compile as an argument (ex. `make mergesort`). You can also run `make all` to compile all algorithms. You will need to complite on a linux machine with the cuda module and gcc module loaded.
+Included in this respository is a makefile, which can be used compile each program. To do this, simply run `make` with the algorithm you wish to compile as an argument (ex. `make mergesort`). You can also run `make all` to compile all algorithms. You will need to compile on a linux machine with the cuda module and gcc module loaded.
 
 Running
 -----
@@ -25,7 +30,7 @@ On a linux machine with a support NVIDIA GPU, you can run any algorithm using th
 
 Example: `./mergesort inp.txt out.txt`
 
-The format of the input text file must be a common seperated list of numbers with no linebreaks in between (see the included testIn10000.txt for an example). The program will output the sorted array to a text file in the same format.
+The format of the input text file must be a comma seperated list of numbers with no linebreaks in between (see the included testIn10000.txt for an example). The program will output the sorted array to a text file in the same format.
 
 Included in this repository is a test file (testIn10000.txt) and its expected output (testOut10000.txt)
 
@@ -40,7 +45,7 @@ Also included are 5 sbatch files that can be used to test on maverick.
 - `test_bricksort_bat`
 - `test_bitonic_bat`
 
-Other included program
+Other included programs
 -----
 Included in this repository are 2 additional programs that can be used to help testing. Both are written in C and should be compiled and run on a linux machine with gcc.
 
@@ -52,12 +57,12 @@ This programming can be used to generate an array of specified size and output t
 **Running:** `./generate_array size file_name.txt max_value`
 - `size` (optional, default 10000): size of the generated array
 - `file_name.txt` (optional, default inp.txt): the name of the file to save the array to
-- `max_value` (optional): if specified, all elements of the array will be between 0-max_value \\
+- `max_value` (optional): if specified, all elements of the array will be between 0-max_value
 
 Example: `./generate_array 10000 inp.txt 1000`
 
 ### `validate`
-The program can be used to validate the output of an algorithm is correct given an input array. It will test to make sure the array is the correct size, in ascending, and valid for the given input array. It uses qsort from the C standard library to sort and compare the 2 arrays.
+The program can be used to validate the output of an algorithm is correct given an input array. It will test to make sure the array is the correct size, in ascending order, and valid for the given input array. It uses qsort from the C standard library to sort and compare the 2 arrays.
 
 **Compiling:** `make validate`
 
