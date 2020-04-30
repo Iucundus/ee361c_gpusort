@@ -1,9 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "file_helper.h"
-#include <pthread.h>
-__global__ void split(int N, int* input, int* left, int* right, int* leftcount, int* rightcount);
 
+__global__ void split(int N, int* input, int* left, int* right, int* leftcount, int* rightcount);
 
 struct node{
 	int* array;
@@ -11,17 +10,8 @@ struct node{
 	node* left;
 	node* right;
 };
-
-struct node2{
-	int* array;
-	int numElements;
-	int before;
-};
-
-void* recursive_helper(void* current_node);
-void* recursive_helper2(void* current_node);
+void recursive_helper(node* current_node);
 void quick_sort(int N, int* input);
-void quick_sort2(int N, int* input);
 
 int main(int argc, char* argv[]) {
 	//Set default file name
@@ -42,7 +32,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	//YOUR CODE HERE
-	quick_sort2(size,A);
+	quick_sort(size,A);
 
 
 	//Output array to file
@@ -56,98 +46,79 @@ int main(int argc, char* argv[]) {
 }
 
 
+
+
 __global__
 void split(int N, int* input, int* left, int* right, int* leftcount, int* rightcount){
-  int index = blockIdx.x * blockDim.x + threadIdx.x;
-  int stride = blockDim.x * gridDim.x;
-  //*leftcount = 0;
-  //*rightcount = 0;
+  int index = threadIdx.x;
+  int stride = blockDim.x;
+  __shared__ int local_left_count;
+  __shared__ int local_right_count;
+  local_left_count = 0;
+  local_right_count = 0;
   __syncthreads();
   int splitter = input[0];
   for (int i = index+1; i < N; i+= stride){
     if(input[i] >= splitter){
-      right[atomicAdd(rightcount,1)] = input[i];
+      right[atomicAdd(&local_right_count,1)] = input[i];
     }else{
-      left[atomicAdd(leftcount,1)] = input[i];
+      left[atomicAdd(&local_left_count,1)] = input[i];
     }
   }
-    //*leftcount = local_left_count;
-    //		*rightcount = local_right_count;
+  __syncthreads();
+    if(index == 0) left[atomicAdd(&local_left_count,1)] = input[0];
+  __syncthreads();
+    *leftcount = local_left_count;
+		*rightcount = local_right_count;
 
 }
 
 
 int* output;
 int output_count;
-int stream_cnt;
-cudaStream_t streams [10000000];
-	
-void quick_sort2(int N, int* input){
-	node2* rootptr;
-	
-	cudaMallocManaged(&rootptr,sizeof(node2));
-	node2 root = *rootptr;
-	cudaMallocManaged(&rootptr->array, sizeof(int)*N);
-	cudaMemcpy(rootptr->array,input,sizeof(int)*N,cudaMemcpyHostToDevice);
-	rootptr->numElements = N;
+void quick_sort(int N, int* input){
+
+	node* rootptr;
+	cudaMallocManaged(&rootptr, sizeof(node));
+	node root = *rootptr;
+	cudaMallocManaged(&root.array, sizeof(int)*N);
+	cudaMemcpy(root.array,input,sizeof(int)*N,cudaMemcpyHostToDevice);
+	root.numElements = N;
 	cudaMallocManaged(&output,sizeof(int)*N);
-	recursive_helper2(&rootptr);
-	cudaMemcpy(input,output,N*sizeof(int),cudaMemcpyDeviceToHost);
-	
+	output_count = 0;
+	recursive_helper(&root);
+	cudaMemcpy(input,output,N*sizeof(int), cudaMemcpyDeviceToHost);
 	cudaFree(output);
 }
 
-void* recursive_helper2(void* ptr){
-	
-	node2* current_node = *((node2**)ptr);
-			
-	if(((node2*)current_node)->numElements == 1){
-		output[((node2*)current_node)->before] = ((node2*)current_node)->array[0];
-		cudaFree(((node2*)current_node)->array);
+void recursive_helper(node* current_node){
+	//printf("%d total ",current_node->numElements);
+
+	//printf("%d splitter ",current_node->array[0]);
+	if(current_node->numElements == 1){
+		output[output_count] = current_node->array[0];
+		output_count++;
+		cudaFree(current_node->array);
 		cudaFree(current_node);
-		return NULL;
-	}if(((node2*)current_node)->numElements == 0){
-		cudaFree(((node2*)current_node)->array);
-		cudaFree(current_node);
-		return NULL;
+		return;
+	}if(current_node->numElements == 0){
+	       cudaFree(current_node->array);
+       	cudaFree(current_node);
+		return;
 	}
-	node2* left;
-	node2* right;
+	cudaMallocManaged(&current_node->left,sizeof(node));
+	cudaMallocManaged(&current_node->right,sizeof(node));
 
-	while(cudaMallocManaged(&left, sizeof(node2)));
-	while(cudaMallocManaged(&left->array, sizeof(int)*(((node2*)current_node)->numElements)));
-	while(cudaMallocManaged(&right, sizeof(node2)));
-	while(cudaMallocManaged(&right->array, sizeof(int)*(((node2*)current_node)->numElements)));
+	cudaMallocManaged(&current_node->left->array, sizeof(int)*current_node->numElements);
+	cudaMallocManaged(&current_node->right->array, sizeof(int)*current_node->numElements);
+	//printf("%d", current_node->left->array[0]);
 
-	int numBlocks = (((node2*)current_node)->numElements + 256 - 1) /256;
-	
-	int streamID = __atomic_fetch_add(&stream_cnt, 1, __ATOMIC_SEQ_CST);
-	cudaStreamCreate(&streams[streamID]);
-	
-	split<<<numBlocks, 256, 0, streams[streamID]>>>(((node2*)current_node)->numElements, ((node2*)current_node)->array, left->array, right->array, &left->numElements, &right->numElements);
-	cudaStreamSynchronize(streams[streamID]);
-		
-	left->array[left->numElements] = ((node2*)current_node)->array[0];
-	left->numElements ++;
-	
-	left->before = ((node2*)current_node)->before;
-	right->before = ((node2*)current_node)->before + left->numElements;
 
-	pthread_t left_thread, right_thread;
-
+	split<<<1,1024>>>(current_node->numElements, current_node->array, current_node->left->array, current_node->right->array, &current_node->left->numElements, &current_node->right->numElements);
 	cudaDeviceSynchronize();
-	cudaFree(((node2*)current_node)->array);
-	cudaFree(((node2*)current_node));
-
-
-	pthread_create(&left_thread, NULL, recursive_helper2, (void*) &left);
-	pthread_join(left_thread,NULL);
-	pthread_create(&right_thread, NULL, recursive_helper2, (void*) &right);
-
-	pthread_join(left_thread,NULL);
-	pthread_join(right_thread,NULL);
-	
-
-	return NULL;
+	recursive_helper(current_node->left);
+	recursive_helper(current_node->right);
+	cudaFree(current_node->array);
+	cudaFree(current_node);
 
 }
