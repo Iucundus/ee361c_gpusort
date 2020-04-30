@@ -81,10 +81,10 @@ int* output;
 int output_count;
 int stream_cnt;
 cudaStream_t streams [10000000];
-	
+
 void quick_sort2(int N, int* input){
 	node2* rootptr;
-	
+
 	cudaMallocManaged(&rootptr,sizeof(node2));
 	node2 root = *rootptr;
 	cudaMallocManaged(&rootptr->array, sizeof(int)*N);
@@ -93,14 +93,14 @@ void quick_sort2(int N, int* input){
 	cudaMallocManaged(&output,sizeof(int)*N);
 	recursive_helper2(&rootptr);
 	cudaMemcpy(input,output,N*sizeof(int),cudaMemcpyDeviceToHost);
-	
+
 	cudaFree(output);
 }
 
 void* recursive_helper2(void* ptr){
-	
+
 	node2* current_node = *((node2**)ptr);
-			
+
 	if(((node2*)current_node)->numElements == 1){
 		output[((node2*)current_node)->before] = ((node2*)current_node)->array[0];
 		cudaFree(((node2*)current_node)->array);
@@ -120,22 +120,21 @@ void* recursive_helper2(void* ptr){
 	while(cudaMallocManaged(&right->array, sizeof(int)*(((node2*)current_node)->numElements)));
 
 	int numBlocks = (((node2*)current_node)->numElements + 256 - 1) /256;
-	
+
 	int streamID = __atomic_fetch_add(&stream_cnt, 1, __ATOMIC_SEQ_CST);
 	cudaStreamCreate(&streams[streamID]);
-	
+
 	split<<<numBlocks, 256, 0, streams[streamID]>>>(((node2*)current_node)->numElements, ((node2*)current_node)->array, left->array, right->array, &left->numElements, &right->numElements);
 	cudaStreamSynchronize(streams[streamID]);
-		
+
 	left->array[left->numElements] = ((node2*)current_node)->array[0];
 	left->numElements ++;
-	
+
 	left->before = ((node2*)current_node)->before;
 	right->before = ((node2*)current_node)->before + left->numElements;
 
 	pthread_t left_thread, right_thread;
 
-	cudaDeviceSynchronize();
 	cudaFree(((node2*)current_node)->array);
 	cudaFree(((node2*)current_node));
 
@@ -146,7 +145,7 @@ void* recursive_helper2(void* ptr){
 
 	pthread_join(left_thread,NULL);
 	pthread_join(right_thread,NULL);
-	
+
 
 	return NULL;
 
