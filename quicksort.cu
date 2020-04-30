@@ -80,7 +80,7 @@ void split(int N, int* input, int* left, int* right, int* leftcount, int* rightc
 int* output;
 int output_count;
 int stream_cnt;
-cudaStream_t streams [50000];
+cudaStream_t streams [10000000];
 	
 void quick_sort2(int N, int* input){
 	node2* rootptr;
@@ -124,9 +124,9 @@ void* recursive_helper2(void* ptr){
 	int streamID = __atomic_fetch_add(&stream_cnt, 1, __ATOMIC_SEQ_CST);
 	cudaStreamCreate(&streams[streamID]);
 	
-	split<<<1, 256, 0, streams[streamID]>>>(((node2*)current_node)->numElements, ((node2*)current_node)->array, left->array, right->array, &left->numElements, &right->numElements);
+	split<<<numBlocks, 256, 0, streams[streamID]>>>(((node2*)current_node)->numElements, ((node2*)current_node)->array, left->array, right->array, &left->numElements, &right->numElements);
 	cudaStreamSynchronize(streams[streamID]);
-	
+		
 	left->array[left->numElements] = ((node2*)current_node)->array[0];
 	left->numElements ++;
 	
