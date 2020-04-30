@@ -36,9 +36,9 @@ The makefile also includes targets that can be used for testing each algorithm. 
 Also included are 5 sbatch files that can be used to test on maverick.
 - `test_mergesort_bat`
 - `test_quicksort_bat`
-- `test_radix_sort_bat`
-- `test_brick_sort_bat`
-- `test_bitonic_sort_bat`
+- `test_radixsort_bat`
+- `test_bricksort_bat`
+- `test_bitonic_bat`
 
 Other included program
 -----
