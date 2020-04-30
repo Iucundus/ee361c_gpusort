@@ -23,6 +23,17 @@ void* recursive_helper2(void* current_node);
 void quick_sort(int N, int* input);
 void quick_sort2(int N, int* input);
 
+__global__ void split(int N, int* input, int* left, int* right, int* leftcount, int* rightcount);
+
+struct node{
+	int* array;
+	int numElements;
+	node* left;
+	node* right;
+};
+void recursive_helper(node* current_node);
+void quick_sort(int N, int* input);
+
 int main(int argc, char* argv[]) {
 	//Set default file name
 	const char* inputFile = "inp.txt";
@@ -42,6 +53,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	//YOUR CODE HERE
+
 	quick_sort2(size,A);
 
 
@@ -74,11 +86,13 @@ void split(int N, int* input, int* left, int* right, int* leftcount, int* rightc
     //*leftcount = local_left_count;
     //		*rightcount = local_right_count;
 
+
 }
 
 
 int* output;
 int output_count;
+
 int stream_cnt;
 cudaStream_t streams [10000000];
 	
@@ -149,5 +163,6 @@ void* recursive_helper2(void* ptr){
 	
 
 	return NULL;
+
 
 }
