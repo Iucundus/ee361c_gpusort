@@ -23,6 +23,8 @@ void* recursive_helper2(void* current_node);
 void quick_sort(int N, int* input);
 void quick_sort2(int N, int* input);
 
+
+
 int main(int argc, char* argv[]) {
 	//Set default file name
 	const char* inputFile = "inp.txt";
@@ -42,8 +44,15 @@ int main(int argc, char* argv[]) {
 	}
 
 	//YOUR CODE HERE
-	quick_sort2(size,A);
+	//quick_sort2(size,A);
+	int* input;
+	cudaMallocManaged(&input,sizeof(int)*size);
+	cudaMemcpy(input,A,sizeof(int)*size,cudaMemcpyHostToDevice);
 
+	quicker_sort<<<1,256>>>(size,input);
+	cudaDeviceSynchronize();
+
+	cudaMemcpy(A,input,sizeof(int)*size,cudaMemcpyDeviceToHost);
 
 	//Output array to file
 	if(saveArray(outputFile, A, size) < 0) {
@@ -74,17 +83,77 @@ void split(int N, int* input, int* left, int* right, int* leftcount, int* rightc
     //*leftcount = local_left_count;
     //		*rightcount = local_right_count;
 
+
 }
+
+
+
+
+
+__global__
+void quicker_sort (int N, int* data){
+	int index = blockIdx.x * blockDim.x + threadIdx.x;
+  int stride = blockDim.x * gridDim.x;
+
+	if(N == 1){
+		return;
+	}
+	__shared__ int* left;
+	__shared__ int* right;
+	__shared__ int left_count;
+	__shared__ int right_count;
+
+	if(index == 0){
+		cudaMalloc(&left,sizeof(int)*N);
+		cudaMalloc(&right,sizeof(int)*N);
+	}
+	int splitter = data[0];
+	__syncthreads();
+
+	for (int i = index+1; i < N; i+= stride){
+    if(data[i] >= splitter){
+      right[atomicAdd(rightcount,1)] = data[i];
+    }else{
+      left[atomicAdd(leftcount,1)] = data[i];
+    }
+  }
+
+	cudaStream_t l;
+	cudaStreamCreateWithFlags(&l, cudaStreamNonBlocking);
+	quicker_sort<<<1,256,0,l>>>(leftcount,left);
+	cudaStreamDestroy(l);
+
+	cudaStream_t r;
+	cudaStreamCreateWithFlags(&r, cudaStreamNonBlocking);
+	quicker_sort<<<1,256,0,r>>>(rightcount,right);
+	cudaStreamDestroy(r);
+
+	for(i = index; i < leftcount; i+= stride){
+		data[i] = left[i];
+	}
+	for(i = index; i < rightcount; i += stride){
+		data[i+leftcount] = right[i];
+	}
+	cudaFree(left);
+	cudaFree(right);
+
+
+}
+
+
+
+
 
 
 int* output;
 int output_count;
+
 int stream_cnt;
 cudaStream_t streams [10000000];
-	
+
 void quick_sort2(int N, int* input){
 	node2* rootptr;
-	
+
 	cudaMallocManaged(&rootptr,sizeof(node2));
 	node2 root = *rootptr;
 	cudaMallocManaged(&rootptr->array, sizeof(int)*N);
@@ -93,14 +162,14 @@ void quick_sort2(int N, int* input){
 	cudaMallocManaged(&output,sizeof(int)*N);
 	recursive_helper2(&rootptr);
 	cudaMemcpy(input,output,N*sizeof(int),cudaMemcpyDeviceToHost);
-	
+
 	cudaFree(output);
 }
 
 void* recursive_helper2(void* ptr){
-	
+
 	node2* current_node = *((node2**)ptr);
-			
+
 	if(((node2*)current_node)->numElements == 1){
 		output[((node2*)current_node)->before] = ((node2*)current_node)->array[0];
 		cudaFree(((node2*)current_node)->array);
@@ -120,16 +189,16 @@ void* recursive_helper2(void* ptr){
 	while(cudaMallocManaged(&right->array, sizeof(int)*(((node2*)current_node)->numElements)));
 
 	int numBlocks = (((node2*)current_node)->numElements + 256 - 1) /256;
-	
+
 	int streamID = __atomic_fetch_add(&stream_cnt, 1, __ATOMIC_SEQ_CST);
 	cudaStreamCreate(&streams[streamID]);
-	
+
 	split<<<numBlocks, 256, 0, streams[streamID]>>>(((node2*)current_node)->numElements, ((node2*)current_node)->array, left->array, right->array, &left->numElements, &right->numElements);
 	cudaStreamSynchronize(streams[streamID]);
-		
+
 	left->array[left->numElements] = ((node2*)current_node)->array[0];
 	left->numElements ++;
-	
+
 	left->before = ((node2*)current_node)->before;
 	right->before = ((node2*)current_node)->before + left->numElements;
 
@@ -146,8 +215,9 @@ void* recursive_helper2(void* ptr){
 
 	pthread_join(left_thread,NULL);
 	pthread_join(right_thread,NULL);
-	
+
 
 	return NULL;
+
 
 }
