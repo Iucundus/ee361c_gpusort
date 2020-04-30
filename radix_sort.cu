@@ -3,8 +3,7 @@
 #include "file_helper.h"
 
 
-__global__
-void radix_sort(int N, int* x, int* out, int* buck0, int* buck1, int* prefix1, int* prefix2);
+__global__ void radix_sort(int N, int* x, int* out, int* buck0, int* buck1, int* prefix1, int* prefix2);
 
 
 int main(int argc, char* argv[]) {
@@ -26,7 +25,6 @@ int main(int argc, char* argv[]) {
 	}
 
 	//YOUR CODE HERE
-
 
 	int* x;
   int* buck0;
